@@ -1,0 +1,894 @@
+package com.example.gloveaf
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import com.example.gloveaf.ui.theme.GLOVEAFTheme
+import kotlinx.coroutines.delay
+
+val ColorCrema = Color(0xFFF5E9C9)
+val ColorAzulOscuro = Color(0xFF0D3B66)
+
+val OndaSuperiorShape = GenericShape { size, _ ->
+    moveTo(0f, 0f)
+    lineTo(size.width, 0f)
+    lineTo(size.width, size.height * 0.7f)
+    cubicTo(
+        size.width * 0.8f, size.height * 1.1f,
+        size.width * 0.2f, size.height * 0.5f,
+        0f, size.height * 0.9f
+    )
+    close()
+}
+
+val OndaInferiorShape = GenericShape { size, _ ->
+    moveTo(0f, size.height * 0.35f)
+    cubicTo(
+        size.width * 0.3f, size.height * 0.1f,
+        size.width * 0.7f, size.height * 0.6f,
+        size.width, size.height * 0.2f
+    )
+    lineTo(size.width, size.height)
+    lineTo(0f, size.height)
+    close()
+}
+
+enum class Pantalla { CARGA, MAIN, FUNCIONAMIENTO, CONFIGURACION }
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            GLOVEAFTheme {
+                var pantallaActual by remember { mutableStateOf(Pantalla.CARGA) }
+
+                LaunchedEffect(Unit) {
+                    delay(2000)
+                    pantallaActual = Pantalla.MAIN
+                }
+
+                AnimatedContent(
+                    targetState = pantallaActual,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(400, easing = EaseInOut)) togetherWith
+                                fadeOut(animationSpec = tween(300, easing = EaseInOut))
+                    },
+                    label = "PantallaTransicion"
+                ) { pantalla ->
+                    when (pantalla) {
+                        Pantalla.CARGA -> PantallaDeCarga()
+                        Pantalla.MAIN -> MainScreen(
+                            onVincularClick = { pantallaActual = Pantalla.FUNCIONAMIENTO }
+                        )
+                        Pantalla.FUNCIONAMIENTO -> FuncionamientoScreen(
+                            onConfigClick = { pantallaActual = Pantalla.CONFIGURACION }
+                        )
+                        Pantalla.CONFIGURACION -> ConfiguracionScreen(
+                            onBack = { pantallaActual = Pantalla.FUNCIONAMIENTO }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PantallaDeCarga() {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(100)
+        visible = true
+    }
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(700, easing = EaseOut),
+        label = "LogoCargaAlpha"
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (visible) 1f else 0.88f,
+        animationSpec = tween(700, easing = EaseOutBack),
+        label = "LogoCargaScale"
+    )
+
+    Box(
+        modifier = Modifier.fillMaxSize().background(ColorAzulOscuro),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.icongloveaf_claro),
+            contentDescription = "Logo",
+            modifier = Modifier
+                .fillMaxWidth(0.6f)
+                .alpha(alpha)
+                .graphicsLayer(scaleX = scale, scaleY = scale),
+            contentScale = ContentScale.Fit
+        )
+    }
+}
+
+@Composable
+fun MainScreen(onVincularClick: () -> Unit) {
+    val azulOscuro = Color(0xFF0D2C4B)
+
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(80)
+        visible = true
+    }
+
+    val alphaImagen by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(500, easing = EaseOut),
+        label = "ImagenAlpha"
+    )
+    val alphaLogo by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(500, delayMillis = 150, easing = EaseOut),
+        label = "LogoAlpha"
+    )
+    val offsetLogo by animateFloatAsState(
+        targetValue = if (visible) 0f else 20f,
+        animationSpec = tween(500, delayMillis = 150, easing = EaseOut),
+        label = "LogoOffset"
+    )
+    val alphaBoton by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(500, delayMillis = 280, easing = EaseOut),
+        label = "BotonAlpha"
+    )
+    val offsetBoton by animateFloatAsState(
+        targetValue = if (visible) 0f else 16f,
+        animationSpec = tween(500, delayMillis = 280, easing = EaseOut),
+        label = "BotonOffset"
+    )
+
+    var botonPresionado by remember { mutableStateOf(false) }
+    val scaleBoton by animateFloatAsState(
+        targetValue = if (botonPresionado) 0.96f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "BotonScale"
+    )
+
+    Column(
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF5E9C9)),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.mano),
+            contentDescription = null,
+            modifier = Modifier.fillMaxWidth().height(180.dp).alpha(alphaImagen),
+            contentScale = ContentScale.FillBounds,
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        Image(
+            painter = painterResource(id = R.drawable.logogloveaf),
+            contentDescription = "Logo",
+            modifier = Modifier
+                .fillMaxWidth(0.7f)
+                .height(150.dp)
+                .alpha(alphaLogo)
+                .graphicsLayer(translationY = offsetLogo)
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Button(
+            onClick = {
+                botonPresionado = true
+                onVincularClick()
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = azulOscuro),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier
+                .fillMaxWidth(0.8f)
+                .height(55.dp)
+                .alpha(alphaBoton)
+                .graphicsLayer(
+                    translationY = offsetBoton,
+                    scaleX = scaleBoton,
+                    scaleY = scaleBoton
+                )
+        ) {
+            Text("Vincular dispositivo", fontSize = 18.sp)
+        }
+        Text(
+            "Toque para buscar",
+            modifier = Modifier.padding(top = 10.dp, bottom = 40.dp).alpha(alphaBoton),
+            color = azulOscuro
+        )
+        Spacer(modifier = Modifier.weight(0.5f))
+        Image(
+            painter = painterResource(id = R.drawable.mano),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .alpha(alphaImagen)
+                .graphicsLayer(rotationZ = 180f),
+            contentScale = ContentScale.FillBounds
+        )
+    }
+}
+
+@Composable
+fun FuncionamientoScreen(onConfigClick: () -> Unit) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(80)
+        visible = true
+    }
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(500, easing = EaseOut),
+        label = "FuncionamientoAlpha"
+    )
+    val offsetPanel by animateFloatAsState(
+        targetValue = if (visible) 0f else 30f,
+        animationSpec = tween(500, easing = EaseOut),
+        label = "PanelOffset"
+    )
+
+    Column(
+        modifier = Modifier.fillMaxSize().background(ColorCrema).alpha(alpha)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth().weight(0.8f),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.logogloveaf),
+                contentDescription = "Logo",
+                modifier = Modifier.fillMaxWidth(0.9f)
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(0.6f)
+                .graphicsLayer {
+                    translationY = offsetPanel
+                    shape = GenericShape { size, _ ->
+                        moveTo(0f, 100f)
+                        lineTo(size.width / 2f, 0f)
+                        lineTo(size.width, 100f)
+                        lineTo(size.width, size.height)
+                        lineTo(0f, size.height)
+                        close()
+                    }
+                    clip = true
+                }
+                .background(ColorAzulOscuro)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(top = 60.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Dispositivo vinculado", color = Color.White, fontSize = 20.sp)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "Predicción de palabras",
+                        color = Color.White,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .height(180.dp)
+                            .background(Color(0xFF8E9B9E), RoundedCornerShape(20.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val infiniteTransition = rememberInfiniteTransition(label = "Parpadeo")
+                        val alphaEsperando by infiniteTransition.animateFloat(
+                            initialValue = 0.4f,
+                            targetValue = 0.8f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(1200, easing = EaseInOut),
+                                repeatMode = RepeatMode.Reverse
+                            ),
+                            label = "AlphaEsperando"
+                        )
+                        Text("Esperando...", color = Color.White.copy(alpha = alphaEsperando))
+                    }
+                }
+                TextButton(
+                    onClick = onConfigClick,
+                    modifier = Modifier.padding(bottom = 30.dp)
+                ) {
+                    Text("Configuración", color = Color.White, fontSize = 18.sp)
+                }
+            }
+        }
+    }
+}
+
+// ── ConfiguracionScreen ───────────────────────────────────────────────────────
+@Composable
+fun ConfiguracionScreen(onBack: () -> Unit) {
+    var seccion by remember { mutableStateOf("MENU") }
+
+    AnimatedContent(
+        targetState = seccion,
+        transitionSpec = {
+            fadeIn(tween(350, easing = EaseOut)) + slideInHorizontally(
+                initialOffsetX = { if (targetState == "MENU") -40 else 40 },
+                animationSpec = tween(350, easing = EaseOut)
+            ) togetherWith fadeOut(tween(250))
+        },
+        label = "SeccionTransicion"
+    ) { seccionActual ->
+        when (seccionActual) {
+            "MENU"          -> ConfigMenuContent(onSeccionChange = { seccion = it }, onBack = onBack)
+            // MANO
+            "MANO"          -> ManoSeleccionScreen(onManoClick = { seccion = it }, onBack = { seccion = "MENU" })
+            "MANO_DERECHA"  -> ManoDerechaScreen(onBack = { seccion = "MANO" })
+            "MANO_ZURDA"    -> ManoZurdaScreen(onBack = { seccion = "MANO" })
+            // VOZ
+            "VOZ"           -> VozSeleccionScreen(onVozClick = { seccion = it }, onBack = { seccion = "MENU" })
+            "VOZ_MASCULINA" -> VozConfirmadaScreen(
+                titulo    = "Voz masculina",
+                subtitulo = "Configurado con voz masculina",
+                iconoRes  = R.drawable.voice_male_white,
+                onBack    = { seccion = "VOZ" }
+            )
+            "VOZ_FEMENINA"  -> VozConfirmadaScreen(
+                titulo    = "Voz femenina",
+                subtitulo = "Configurado con voz femenina",
+                iconoRes  = R.drawable.voice_fem_white,
+                onBack    = { seccion = "VOZ" }
+            )
+            "VOZ_VELOCIDAD" -> VozConfirmadaScreen(
+                titulo    = "Velocidad de habla",
+                subtitulo = "Ajustá la velocidad de la voz",
+                iconoRes  = R.drawable.speed_white,
+                onBack    = { seccion = "VOZ" }
+            )
+            // TECLAS
+            else            -> ConfigDetalleContent(seccion = seccionActual, onBack = { seccion = "MENU" })
+        }
+    }
+}
+
+@Composable
+fun ConfigMenuContent(onSeccionChange: (String) -> Unit, onBack: () -> Unit) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(60)
+        visible = true
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize().background(ColorCrema),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(60.dp))
+        Image(
+            painter = painterResource(id = R.drawable.logogloveaf),
+            contentDescription = "Logo",
+            modifier = Modifier.fillMaxWidth(0.85f).height(250.dp),
+            contentScale = ContentScale.Fit
+        )
+        Text("¡Dispositivo vinculado!", color = ColorAzulOscuro, fontSize = 18.sp)
+        Spacer(modifier = Modifier.weight(1f))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(350.dp)
+                .background(ColorAzulOscuro, OndaInferiorShape)
+                .padding(top = 90.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                val items = listOf(
+                    "Asignación de teclas" to "TECLAS",
+                    "Modo mano"            to "MANO",
+                    "Cambiar la voz"       to "VOZ"
+                )
+                items.forEachIndexed { index, (texto, destino) ->
+                    val alpha by animateFloatAsState(
+                        targetValue = if (visible) 1f else 0f,
+                        animationSpec = tween(400, delayMillis = index * 80, easing = EaseOut),
+                        label = "MenuItemAlpha$index"
+                    )
+                    val offset by animateFloatAsState(
+                        targetValue = if (visible) 0f else 18f,
+                        animationSpec = tween(400, delayMillis = index * 80, easing = EaseOut),
+                        label = "MenuItemOffset$index"
+                    )
+                    Box(modifier = Modifier.alpha(alpha).graphicsLayer(translationY = offset)) {
+                        BotonPildora(texto) { onSeccionChange(destino) }
+                    }
+                }
+                TextButton(onClick = onBack) {
+                    Text("Volver al inicio", color = Color.White.copy(alpha = 0.5f))
+                }
+            }
+        }
+    }
+}
+
+// ── TECLAS ────────────────────────────────────────────────────────────────────
+@Composable
+fun ConfigDetalleContent(seccion: String, onBack: () -> Unit) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(60)
+        visible = true
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize().background(ColorAzulOscuro)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .background(ColorCrema, OndaSuperiorShape)
+                .padding(horizontal = 25.dp, vertical = 50.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.icongloveaf),
+                    contentDescription = null,
+                    modifier = Modifier.size(60.dp)
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Configuración",
+                        color = ColorAzulOscuro,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(Icons.Default.Settings, contentDescription = null, tint = ColorAzulOscuro)
+                }
+            }
+        }
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 25.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Agrega atajos de palabras!",
+                color = Color.White,
+                fontSize = 16.sp,
+                modifier = Modifier.align(Alignment.Start).padding(bottom = 15.dp)
+            )
+            val opciones = listOf("Buen día") + List(5) { "Atajos de palabras" }
+            opciones.forEachIndexed { index, texto ->
+                val alpha by animateFloatAsState(
+                    targetValue = if (visible) 1f else 0f,
+                    animationSpec = tween(380, delayMillis = index * 70, easing = EaseOut),
+                    label = "DetalleAlpha$index"
+                )
+                val offset by animateFloatAsState(
+                    targetValue = if (visible) 0f else 14f,
+                    animationSpec = tween(380, delayMillis = index * 70, easing = EaseOut),
+                    label = "DetalleOffset$index"
+                )
+                Box(modifier = Modifier.alpha(alpha).graphicsLayer(translationY = offset)) {
+                    BotonPildora(texto) {}
+                }
+            }
+            TextButton(onClick = onBack, modifier = Modifier.padding(top = 10.dp)) {
+                Text("Atrás", color = Color.White.copy(alpha = 0.7f))
+            }
+        }
+    }
+}
+
+// ── MANO: selección ───────────────────────────────────────────────────────────
+@Composable
+fun ManoSeleccionScreen(onManoClick: (String) -> Unit, onBack: () -> Unit) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { delay(60); visible = true }
+
+    Column(
+        modifier = Modifier.fillMaxSize().background(ColorAzulOscuro),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .background(ColorCrema, OndaSuperiorShape)
+                .padding(horizontal = 25.dp, vertical = 50.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.icongloveaf),
+                    contentDescription = null,
+                    modifier = Modifier.size(60.dp)
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Modo mano",
+                        color = ColorAzulOscuro,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(Icons.Default.Settings, contentDescription = null, tint = ColorAzulOscuro)
+                }
+            }
+        }
+        Text(
+            "Seleccioná tu mano dominante",
+            color = Color.White,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(top = 24.dp, bottom = 32.dp)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            listOf(
+                Triple("Diestra", "MANO_DERECHA", false),
+                Triple("Zurda",   "MANO_ZURDA",   true)
+            ).forEachIndexed { index, (label, destino, espejo) ->
+                val alpha by animateFloatAsState(
+                    targetValue = if (visible) 1f else 0f,
+                    animationSpec = tween(400, delayMillis = index * 100, easing = EaseOut),
+                    label = "ManoCardAlpha$index"
+                )
+                val offset by animateFloatAsState(
+                    targetValue = if (visible) 0f else 20f,
+                    animationSpec = tween(400, delayMillis = index * 100, easing = EaseOut),
+                    label = "ManoCardOffset$index"
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .alpha(alpha)
+                        .graphicsLayer(translationY = offset)
+                ) {
+                    ManoCard(label = label, espejo = espejo, onClick = { onManoClick(destino) })
+                }
+            }
+        }
+        Spacer(modifier = Modifier.weight(1f))
+        TextButton(onClick = onBack, modifier = Modifier.padding(bottom = 30.dp)) {
+            Text("Atrás", color = Color.White.copy(alpha = 0.7f))
+        }
+    }
+}
+
+@Composable
+fun ManoCard(label: String, espejo: Boolean, onClick: () -> Unit) {
+    var presionado by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (presionado) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "ManoCardScale"
+    )
+    Button(
+        onClick = { presionado = true; onClick() },
+        colors = ButtonDefaults.buttonColors(containerColor = ColorCrema),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(160.dp)
+            .graphicsLayer(scaleX = scale, scaleY = scale),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+        contentPadding = PaddingValues(12.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Image(
+                painter = painterResource(id = R.drawable.hand),
+                contentDescription = label,
+                modifier = Modifier
+                    .size(90.dp)
+                    .graphicsLayer(scaleX = if (espejo) -1f else 1f),
+                contentScale = ContentScale.Fit
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(label, color = ColorAzulOscuro, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+// ── MANO: confirmación ────────────────────────────────────────────────────────
+@Composable
+fun ManoDerechaScreen(onBack: () -> Unit) {
+    ManoConfirmadaScreen(
+        titulo    = "Mano diestra",
+        subtitulo = "Configurado para la mano derecha",
+        espejo    = false,
+        onBack    = onBack
+    )
+}
+
+@Composable
+fun ManoZurdaScreen(onBack: () -> Unit) {
+    ManoConfirmadaScreen(
+        titulo    = "Mano zurda",
+        subtitulo = "Configurado para la mano izquierda",
+        espejo    = true,
+        onBack    = onBack
+    )
+}
+
+@Composable
+fun ManoConfirmadaScreen(titulo: String, subtitulo: String, espejo: Boolean, onBack: () -> Unit) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { delay(80); visible = true }
+
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(500, easing = EaseOut),
+        label = "ConfirmadaAlpha"
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (visible) 1f else 0.85f,
+        animationSpec = tween(500, easing = EaseOutBack),
+        label = "ConfirmadaScale"
+    )
+
+    Column(
+        modifier = Modifier.fillMaxSize().background(ColorAzulOscuro).alpha(alpha),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.hand_white),
+            contentDescription = titulo,
+            modifier = Modifier
+                .size(160.dp)
+                .graphicsLayer(scaleX = if (espejo) -1f else 1f, scaleY = scale),
+            contentScale = ContentScale.Fit
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(titulo, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text(subtitulo, color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
+        Spacer(modifier = Modifier.height(48.dp))
+        BotonPildora("Confirmar") { onBack() }
+        TextButton(onClick = onBack, modifier = Modifier.padding(top = 8.dp)) {
+            Text("Atrás", color = Color.White.copy(alpha = 0.7f))
+        }
+    }
+}
+
+// ── VOZ: selección ────────────────────────────────────────────────────────────
+@Composable
+fun VozSeleccionScreen(onVozClick: (String) -> Unit, onBack: () -> Unit) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { delay(60); visible = true }
+
+    Column(
+        modifier = Modifier.fillMaxSize().background(ColorAzulOscuro),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .background(ColorCrema, OndaSuperiorShape)
+                .padding(horizontal = 25.dp, vertical = 50.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.icongloveaf),
+                    contentDescription = null,
+                    modifier = Modifier.size(60.dp)
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Cambiar la voz",
+                        color = ColorAzulOscuro,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(Icons.Default.Settings, contentDescription = null, tint = ColorAzulOscuro)
+                }
+            }
+        }
+
+        Text(
+            "Configurá la voz del dispositivo",
+            color = Color.White,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(top = 24.dp, bottom = 32.dp)
+        )
+
+        // Fila superior: Masculina + Femenina
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            listOf(
+                Triple("Masculina", "VOZ_MASCULINA", R.drawable.voice_male),
+                Triple("Femenina",  "VOZ_FEMENINA",  R.drawable.voice_fem)
+            ).forEachIndexed { index, (label, destino, iconoRes) ->
+                val alpha by animateFloatAsState(
+                    targetValue = if (visible) 1f else 0f,
+                    animationSpec = tween(400, delayMillis = index * 100, easing = EaseOut),
+                    label = "VozCardAlpha$index"
+                )
+                val offset by animateFloatAsState(
+                    targetValue = if (visible) 0f else 20f,
+                    animationSpec = tween(400, delayMillis = index * 100, easing = EaseOut),
+                    label = "VozCardOffset$index"
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .alpha(alpha)
+                        .graphicsLayer(translationY = offset)
+                ) {
+                    VozCard(label = label, iconoRes = iconoRes, onClick = { onVozClick(destino) })
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Fila inferior: Velocidad centrada
+        val alphaVel by animateFloatAsState(
+            targetValue = if (visible) 1f else 0f,
+            animationSpec = tween(400, delayMillis = 200, easing = EaseOut),
+            label = "VozCardAlphaVel"
+        )
+        val offsetVel by animateFloatAsState(
+            targetValue = if (visible) 0f else 20f,
+            animationSpec = tween(400, delayMillis = 200, easing = EaseOut),
+            label = "VozCardOffsetVel"
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.6f)
+                .alpha(alphaVel)
+                .graphicsLayer(translationY = offsetVel)
+        ) {
+            VozCard(
+                label    = "Velocidad",
+                iconoRes = R.drawable.speed,
+                onClick  = { onVozClick("VOZ_VELOCIDAD") }
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+        TextButton(onClick = onBack, modifier = Modifier.padding(bottom = 30.dp)) {
+            Text("Atrás", color = Color.White.copy(alpha = 0.7f))
+        }
+    }
+}
+
+@Composable
+fun VozCard(label: String, iconoRes: Int, onClick: () -> Unit) {
+    var presionado by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (presionado) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "VozCardScale"
+    )
+    Button(
+        onClick = { presionado = true; onClick() },
+        colors = ButtonDefaults.buttonColors(containerColor = ColorCrema),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(130.dp)
+            .graphicsLayer(scaleX = scale, scaleY = scale),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+        contentPadding = PaddingValues(12.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Image(
+                painter = painterResource(id = iconoRes),
+                contentDescription = label,
+                modifier = Modifier.size(64.dp),
+                contentScale = ContentScale.Fit
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(label, color = ColorAzulOscuro, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+// ── VOZ: confirmación ─────────────────────────────────────────────────────────
+@Composable
+fun VozConfirmadaScreen(titulo: String, subtitulo: String, iconoRes: Int, onBack: () -> Unit) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { delay(80); visible = true }
+
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(500, easing = EaseOut),
+        label = "VozConfirmadaAlpha"
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (visible) 1f else 0.85f,
+        animationSpec = tween(500, easing = EaseOutBack),
+        label = "VozConfirmadaScale"
+    )
+
+    Column(
+        modifier = Modifier.fillMaxSize().background(ColorAzulOscuro).alpha(alpha),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Image(
+            painter = painterResource(id = iconoRes),
+            contentDescription = titulo,
+            modifier = Modifier
+                .size(160.dp)
+                .graphicsLayer(scaleX = scale, scaleY = scale),
+            contentScale = ContentScale.Fit
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(titulo, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text(subtitulo, color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
+        Spacer(modifier = Modifier.height(48.dp))
+        BotonPildora("Confirmar") { onBack() }
+        TextButton(onClick = onBack, modifier = Modifier.padding(top = 8.dp)) {
+            Text("Atrás", color = Color.White.copy(alpha = 0.7f))
+        }
+    }
+}
+
+// ── Componente reutilizable ───────────────────────────────────────────────────
+@Composable
+fun BotonPildora(texto: String, onClick: () -> Unit) {
+    var presionado by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (presionado) 0.96f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "PildoraScale"
+    )
+    Button(
+        onClick = { presionado = true; onClick() },
+        colors = ButtonDefaults.buttonColors(containerColor = ColorCrema),
+        shape = RoundedCornerShape(50),
+        modifier = Modifier
+            .fillMaxWidth(0.9f)
+            .padding(vertical = 5.dp)
+            .height(50.dp)
+            .graphicsLayer(scaleX = scale, scaleY = scale),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+    ) {
+        Text(
+            text = texto,
+            color = ColorAzulOscuro,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
